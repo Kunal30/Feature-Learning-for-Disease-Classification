@@ -8,12 +8,14 @@ import numpy as np
 from keras import backend as K
 from keras.models import Model
 from keras.layers import Flatten, Dense, Dropout
+from keras.layers import Conv2D
 from keras.applications.resnet50 import ResNet50, preprocess_input
 from keras.optimizers import Adam
 from keras.preprocessing.image import ImageDataGenerator
 import os
 import sys
-
+from PIL import Image
+from skimage.color import rgb2gray
 import numpy as np
 from matplotlib import pyplot as plt
 import cv2
@@ -97,13 +99,17 @@ def main():
 	batch_x_random_crop, batch_y_targeted_crop = next(train_crops)
 	
 	in_painted_x= in_painting_mask(batch_x_random_crop,batch_y_targeted_crop)
+	
+	batch_x_random_crop=rgb2gray(batch_x_random_crop)
+	batch_x_random_crop=np.reshape(batch_x_random_crop,(batch_x_random_crop.shape[0],224,224,1))
+	
+	
+	model = Unet(backbone_name='resnet18', encoder_weights='imagenet', decoder_block_type='transpose') # build U-Net
+	model.compile(optimizer='Adam', loss='mean_squared_error')
+	model.summary()
+	model.fit(x=in_painted_x,y=batch_x_random_crop, steps_per_epoch=12,epochs=5)
 
-	for i in range(0,54):
-		plt.imshow(batch_x_random_crop[i])
-		plt.show()
-		plt.imshow(in_painted_x[i])
-		plt.show()
-
+	
 
 
 def in_painting_mask(batch_x,batch_y):
