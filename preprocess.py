@@ -37,18 +37,9 @@ def random_crop(img, random_crop_size):
     y = np.random.randint(0, height - dy + 1)
     img=img[y:(y+dy), x:(x+dx), :]
     img=img/255
-    print('Before Resizing')
-    plt.imshow(img)
-    plt.show()
-    print(img.shape)
     img = cv2.resize(img,(224,224))
     
 
-    print('After Resizing')
-    print(img.shape)
-    plt.imshow(img)
-    plt.show()
-    # cv2.imshow("img",img)
     return img
 
 
@@ -62,8 +53,9 @@ def crop(img, random_crop_size):
     x0 = 94
     y0 = 45
     img=img[y0:(y0+dy0), x0:(x0+dx0), :]
+    img=img/255
     img = cv2.resize(img,(224,224))
-    # cv2.imshow("img",img)
+    
     return img
 
 def crop_generator(batches, crop_length):#224
@@ -72,21 +64,13 @@ def crop_generator(batches, crop_length):#224
     """
     while True:
         batch_x= next(batches)
-        # cv2.imshow("yolo",batch_)W
+        
         batch_crops_inp = np.zeros((batch_x.shape[0], 224, 224,3))#224
         batch_crops_tar = np.zeros((batch_x.shape[0], 224, 224,3))
         for i in range(batch_x.shape[0]):
             batch_crops_inp[i] = random_crop(batch_x[i], (crop_length, crop_length))
             batch_crops_tar[i] = crop(batch_x[i], (crop_length, crop_length))
-         #    print('batch_x')
-    	    # plt.imshow(batch_x[i])
-         #    plt.show()
-         #    print('batch_crops_inp')
-         #    plt.imshow(batch_crops_inp[i])
-         #    plt.show()
-         #    print('batch_crops_tar')
-         #    plt.imshow(batch_crops_tar[i])
-         #    plt.show()
+        
         yield (batch_crops_inp,batch_crops_tar)
 
 
@@ -110,15 +94,49 @@ def main():
 	valid_crops = crop_generator(valid_batches, CROP_LENGTH)
 
 
-	batch_x, batch_y = next(train_crops)
-	print (np.array(batch_x).shape)
-	print (np.array(batch_y).shape)
-	plt.imshow(batch_x[0])
-	plt.show()
-	plt.imshow(batch_y[0])
-	plt.show()
-	print('Success!!!!')
+	batch_x_random_crop, batch_y_targeted_crop = next(train_crops)
+	
+	in_painted_x= in_painting_mask(batch_x_random_crop,batch_y_targeted_crop)
 
+	for i in range(0,54):
+		plt.imshow(batch_x_random_crop[i])
+		plt.show()
+		plt.imshow(in_painted_x[i])
+		plt.show()
+
+
+
+def in_painting_mask(batch_x,batch_y):
+
+	
+	#Creating random mask dimensions for inpainting
+	in_paint_x=np.zeros((batch_x.shape[0],224,224,3))
+	
+	width=224
+	height=224
+
+	for i in range(0,batch_x.shape[0]):
+		mask=np.zeros((224,224,3))
+
+		#random size of mask
+		dx= np.random.randint(0,224+1)
+		dy= np.random.randint(0,224+1)
+
+		#random location of mask
+		x = np.random.randint(0, 224 + 1)
+		y = np.random.randint(0, 224 + 1)
+
+		x_plus_dx=min(x+dx,224)
+		y_plus_dy=min(y+dy,224)
+
+		mask[x:(x_plus_dx),y:(y_plus_dy),:]=1
+		
+		
+		in_paint_x[i]=np.multiply(batch_x[i],mask)
+
+		
+
+	return in_paint_x
 
 
 
