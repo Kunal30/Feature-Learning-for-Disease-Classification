@@ -97,17 +97,22 @@ def main():
 
 
 	batch_x_random_crop, batch_y_targeted_crop = next(train_crops)
+	valid_x, valid_y = next(valid_crops)
 	
 	in_painted_x= in_painting_mask(batch_x_random_crop,batch_y_targeted_crop)
-	
+	valid_in_x=in_painting_mask(valid_x,valid_y)
+
 	batch_x_random_crop=rgb2gray(batch_x_random_crop)
 	batch_x_random_crop=np.reshape(batch_x_random_crop,(batch_x_random_crop.shape[0],224,224,1))
 	
+	valid_x=rgb2gray(valid_x)
+	valid_x=np.reshape(valid_x,(valid_x.shape[0],224,224,1))
+
 	
 	model = Unet(backbone_name='resnet18', encoder_weights='imagenet', decoder_block_type='transpose') # build U-Net
 	model.compile(optimizer='Adam', loss='mean_squared_error')
 	model.summary()
-	model.fit(x=in_painted_x,y=batch_x_random_crop, steps_per_epoch=12,epochs=5)
+	model.fit(x=in_painted_x,y=batch_x_random_crop,validation_data= (valid_in_x,valid_x),validation_steps=5, steps_per_epoch=5,epochs=1)
 
 	
 
