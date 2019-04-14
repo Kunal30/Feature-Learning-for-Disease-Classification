@@ -130,11 +130,11 @@ def main():
 	print(train_crops_orig.shape)
 	train_crops_orig=np.reshape(train_crops_orig,(train_crops_orig.shape[0]*train_crops_orig.shape[1],224,224,3))
 	print(train_crops_orig.shape)
-	in_painted_x= in_painting_mask(train_crops_orig)
+	in_painted_x= out_painting_mask(train_crops_orig)
 	# valid_in_x=in_painting_mask(valid_x,valid_y)
 
-	batch_x_random_crop=rgb2gray(train_crops_orig)
-	batch_x_random_crop=np.reshape(batch_x_random_crop,(batch_x_random_crop.shape[0],224,224,1))
+	train_crops_1_ch=rgb2gray(train_crops_orig)
+	train_crops_1_ch=np.reshape(train_crops_1_ch,(train_crops_1_ch.shape[0],224,224,1))
 	
 	# valid_x=rgb2gray(valid_x)
 	# valid_x=np.reshape(valid_x,(valid_x.shape[0],224,224,1))
@@ -143,12 +143,57 @@ def main():
 	model = Unet(backbone_name='resnet18', encoder_weights='imagenet', decoder_block_type='transpose') # build U-Net
 	model.compile(optimizer='Adam', loss='mean_squared_error')
 	model.summary()
-	model.fit(x=in_painted_x,y=batch_x_random_crop,steps_per_epoch=5,epochs=1)
+	print('inpaited',in_painted_x.shape)
+	print('1 channel y',train_crops_1_ch.shape)
+	# model.fit(x=in_painted_x,y=train_crops_1_ch,steps_per_epoch=5,epochs=5)
 
+
+def out_painting_mask(batch_x):
+
+	
+	#Creating random mask dimensions for inpainting
+	out_paint_x=np.zeros((batch_x.shape[0],224,224,3))
+	
+	width=224
+	height=224
+
+
+	for i in range(0,batch_x.shape[0]):
+		mask=np.ones((224,224,3))
+
+		#choosing h and w such that it conserves 50% of the image
+		h=np.random.randint(0,224)
+		w=np.random.randint(0,224)
+		while not ((224-2*h)*(224-2*w) >=25088 and 2*h<224 and 2*w<224):
+			h=np.random.randint(0,224)
+			w=np.random.randint(0,224)
+			print('h',h)
+			print('w',w)
+			print((224-2*h)*(224-2*w))
+			print('*********************')
+		
+		#locations of masks
+		
+		mask[0:h,0:224,:]=0
+		mask[224-h:224,0:224,:]=0
+		mask[0:224,0:w,:]=0
+		mask[0:224,224-w:224,:]=0
+
+		plt.imshow(batch_x[i])
+		plt.show()
+		
+		out_paint_x[i]=np.multiply(batch_x[i],mask)
+
+		plt.imshow(out_paint_x[i])
+		plt.show()
+		
+		
+
+	return out_paint_x
 	
 
 
-def in_painting_mask(batch_x):
+def in_painting_out_painting_mask(batch_x):
 
 	
 	#Creating random mask dimensions for inpainting
