@@ -1,6 +1,6 @@
 
 # Code Author: Kunal Suthar
-# Uniform Preprocessing file for performing Out-painting for SML project
+# Uniform Preprocessing file for performing In-painting for SML project
 
 from segmentation_models import Unet, Nestnet, Xnet
 
@@ -129,7 +129,7 @@ def crop_generator(batches, crop_length,lines):#224
 	            batch_crops_inp[j][i] = random_crop(batch_x[i], (crop_length, crop_length),filenames[i],j,lines)
 	            # index=index+1
 	    batch_crops_inp=np.reshape(batch_crops_inp,(batch_crops_inp.shape[0]*batch_crops_inp.shape[1],224,224,3))        
-	    batch_crops_out=out_painting_mask(batch_crops_inp)
+	    batch_crops_out=in_painting_mask(batch_crops_inp)
 
 	    batch_crops_inp=rgb2gray(batch_crops_inp)
 	    batch_crops_inp=np.reshape(batch_crops_inp,(batch_crops_inp.shape[0],224,224,1))
@@ -213,7 +213,7 @@ def main():
 	
 	# model = Unet(backbone_name='resnet18', encoder_weights='imagenet', decoder_block_type='transpose') # build U-Net
 	model = Unet(backbone_name='resnet18', encoder_weights=None) # build U-Net
-	model.load_weights('/home/ksuthar1/Kunal/Outputs/best_model.h5')
+	# model.load_weights('/home/ksuthar1/Kunal/Outputs/best_model.h5')
 	model.compile(optimizer='Adam', loss='mean_squared_error')
 	model.summary()
 	# print('inpaited',in_painted_x.shape)
@@ -222,7 +222,7 @@ def main():
 	# print(train_crops_1_ch.shape)
 
 	callbacks = [EarlyStopping(monitor='val_loss', patience=70),
-	             ModelCheckpoint(filepath='best_model70_withgray_finetuned.h5', monitor='val_loss', save_best_only=True),
+	             ModelCheckpoint(filepath='inpainted_best_model70_withgray_finetuned.h5', monitor='val_loss', save_best_only=True),
 	             TensorBoard(log_dir='./logs', histogram_freq=0, write_graph=True, write_images=True)]
 	model.fit_generator(generator=train_crops_orig,
                     steps_per_epoch=100,
@@ -230,7 +230,50 @@ def main():
                     callbacks=callbacks,
                     validation_steps=200,
                     epochs=300)
-	model.save('outpaint70_withgray_finetuned.h5')
+	model.save('inpainted_outpaint70_withgray_finetuned.h5')
+
+def in_painting_mask(batch_x):
+
+	
+	#Creating random mask dimensions for inpainting
+	in_paint_x=np.zeros((batch_x.shape[0],224,224,3))
+	
+	width=224
+	height=224
+
+
+	for i in range(0,batch_x.shape[0]):
+		mask=np.ones((224,224,3))
+
+		#choosing h and w such that it conserves 50% of the image
+		h=np.random.randint(0,224)
+		w=np.random.randint(0,224)
+		while not ((224-2*h)*(224-2*w) <=25088 and 2*h<224 and 2*w<224):
+			h=np.random.randint(0,224)
+			w=np.random.randint(0,224)
+			# print('h',h)
+			# print('w',w)
+			# print((224-2*h)*(224-2*w))
+			# print('*********************')
+		
+		#locations of masks
+		
+		mask[h:224-h,w:224-w,:]=0		
+
+		# plt.imshow(batch_x[i])
+		# plt.show()
+		
+		in_paint_x[i]=np.multiply(batch_x[i],mask)
+
+		in_paint_x[i][h:224-h,w:224-w,:]=0.5
+		
+
+		# plt.imshow(in_paint_x[i])
+		# plt.show()
+		
+		
+ 
+	return in_paint_x
 
 def out_painting_mask(batch_x):
 
